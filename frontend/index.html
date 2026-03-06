@@ -144,6 +144,29 @@
         Constituency Race — Hot Zones
       </div>
 
+      <!-- Search bar -->
+      <div class="search-wrap" role="search">
+        <div class="search-input-wrap">
+          <svg class="search-icon" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M13 13l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          <input
+            type="search"
+            id="zone-search"
+            class="zone-search-input"
+            placeholder="Search constituency, district, candidate, party…"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search constituencies"
+          />
+          <button class="search-clear" id="search-clear" aria-label="Clear search" hidden>
+            <svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="search-results-count" id="search-count" aria-live="polite" aria-atomic="true"></div>
+      </div>
+
       <!-- Province filters -->
       <nav class="filter-bar" role="navigation" aria-label="Filter by province">
         <button class="fpill active" onclick="filterZones('all', this)" aria-pressed="true">All Provinces</button>

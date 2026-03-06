@@ -268,7 +268,7 @@ function renderLeadTable(seats) {
 }
 
 /* ── RENDER: ZONE CARD (TOURNAMENT FORMAT) ──────────────────── */
-function buildZoneCard(zone, delay) {
+function buildZoneCard(zone, delay, query = '') {
   const cands = zone.candidates.slice(0, 3);
   const totalVotes = cands.reduce((s, c) => s + c.votes, 0) || 1;
 
@@ -299,11 +299,11 @@ function buildZoneCard(zone, delay) {
         <div class="ch-rank">${rankLabel}</div>
         <div class="ch-photo-name">
           <div class="ch-photo">${photoEl(c.img, c.name)}</div>
-          <div class="ch-name">${c.name}</div>
+          <div class="ch-name">${highlightText(c.name, query)}</div>
         </div>
         <div class="ch-party">
           <div class="t-party-dot" style="background:${p.color}"></div>
-          <span style="color:${p.color}">${p.abbr}</span>
+          <span style="color:${p.color}">${highlightText(p.abbr, query)}</span>
         </div>
         <div class="ch-votes">${fmt(c.votes)}</div>
         <div class="ch-pct">${pct(c.votes)}% of counted</div>
@@ -319,8 +319,8 @@ function buildZoneCard(zone, delay) {
   card.innerHTML = `
     <div class="zone-header">
       <div>
-        <div class="zone-name">${zone.name}</div>
-        <div class="zone-meta">${zone.district} · ${zone.province}</div>
+        <div class="zone-name">${highlightText(zone.name, query)}</div>
+        <div class="zone-meta">${highlightText(zone.district, query)} · ${highlightText(zone.province, query)}</div>
       </div>
       <div class="zone-status-badge ${statusClass}">${statusText}</div>
     </div>
@@ -332,10 +332,10 @@ function buildZoneCard(zone, delay) {
           <div class="t-candidate-inner">
             <div class="t-photo">${photoEl(c1.img, c1.name)}</div>
             <div class="t-info">
-              <div class="t-name">${c1.name}</div>
+              <div class="t-name">${highlightText(c1.name, query)}</div>
               <div class="t-party-tag">
                 <div class="t-party-dot" style="background:${p1.color}"></div>
-                <span style="color:${p1.color};font-weight:700">${p1.abbr}</span>
+                <span style="color:${p1.color};font-weight:700">${highlightText(p1.abbr, query)}</span>
                 <span style="color:var(--text-3)">${p1.name}</span>
               </div>
             </div>
@@ -377,6 +377,7 @@ function buildZoneCard(zone, delay) {
 /* ── FILTER & RENDER ZONES ──────────────────────────────────── */
 let ALL_ZONES = [];
 let ACTIVE_FILTER = 'all';
+let SEARCH_QUERY = '';
 
 function filterZones(province, btn) {
   document.querySelectorAll('.fpill').forEach(b => b.classList.remove('active'));
@@ -385,21 +386,74 @@ function filterZones(province, btn) {
   renderZones();
 }
 
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function highlightText(text, query) {
+  if (!query) return text;
+  const re = new RegExp(`(${escapeRe(query)})`, 'gi');
+  return text.replace(re, '<mark class="search-highlight">$1</mark>');
+}
+
+function matchesSearch(zone, q) {
+  if (!q) return true;
+  const lower = q.toLowerCase();
+  if (zone.name.toLowerCase().includes(lower)) return true;
+  if (zone.district.toLowerCase().includes(lower)) return true;
+  if (zone.province.toLowerCase().includes(lower)) return true;
+  if (zone.id.toLowerCase().includes(lower)) return true;
+  for (const c of zone.candidates) {
+    if (c.name.toLowerCase().includes(lower)) return true;
+    const p = getParty(c.party);
+    if (p.abbr.toLowerCase().includes(lower)) return true;
+    if (p.name.toLowerCase().includes(lower)) return true;
+    if (c.party.toLowerCase().includes(lower)) return true;
+  }
+  return false;
+}
+
 function renderZones() {
   const grid = document.getElementById('zones-grid');
+  const countEl = document.getElementById('search-count');
   grid.innerHTML = '';
 
-  const filtered = ACTIVE_FILTER === 'all'
+  let filtered = ACTIVE_FILTER === 'all'
     ? ALL_ZONES
     : ALL_ZONES.filter(z => z.province === ACTIVE_FILTER);
 
+  const q = SEARCH_QUERY.trim();
+  if (q) {
+    filtered = filtered.filter(z => matchesSearch(z, q));
+  }
+
+  // Update result count label
+  if (countEl) {
+    if (q) {
+      if (filtered.length === 0) {
+        countEl.innerHTML = `<span class="no-results">No results for "<strong>${q}</strong>"</span>`;
+      } else {
+        countEl.innerHTML = `<span class="hl">${filtered.length}</span> result${filtered.length !== 1 ? 's' : ''} for "<strong>${q}</strong>"`;
+      }
+    } else {
+      countEl.textContent = `Showing ${filtered.length} of ${ALL_ZONES.length} constituencies`;
+    }
+  }
+
   if (filtered.length === 0) {
-    grid.innerHTML = `<div class="loader"><div>No constituencies found for this province.</div></div>`;
+    const noRes = document.createElement('div');
+    noRes.className = 'no-results-state';
+    noRes.innerHTML = `
+      <div class="nrs-icon">🔍</div>
+      <div class="nrs-title">No constituencies found</div>
+      <div class="nrs-sub">Try searching by constituency name, district, candidate name, or party abbreviation</div>
+    `;
+    grid.appendChild(noRes);
     return;
   }
 
   filtered.forEach((z, i) => {
-    grid.appendChild(buildZoneCard(z, i * 0.04));
+    grid.appendChild(buildZoneCard(z, i * 0.04, q));
   });
 }
 
@@ -429,6 +483,28 @@ function init() {
   renderSeatsBar(data.seats);
   renderPartyGrid(data.seats);
   renderLeadTable(data.seats);
+
+  // Search input
+  const searchInput = document.getElementById('zone-search');
+  const searchClear = document.getElementById('search-clear');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      SEARCH_QUERY = searchInput.value;
+      if (searchClear) searchClear.hidden = !SEARCH_QUERY;
+      renderZones();
+    });
+  }
+
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      SEARCH_QUERY = '';
+      searchClear.hidden = true;
+      searchInput && searchInput.focus();
+      renderZones();
+    });
+  }
 
   // Zones
   ALL_ZONES = data.zones;
