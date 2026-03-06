@@ -1,9 +1,3 @@
-"""
-image_downloader.py — Download candidate photos and party symbols from ECN.
-
-Saves to output/images/{candidates,symbols}/ with sanitised filenames.
-Skips already-downloaded files for resumable runs.
-"""
 
 from __future__ import annotations
 

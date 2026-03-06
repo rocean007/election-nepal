@@ -173,7 +173,6 @@ body::before {
   gap: 20px;
 }
 
-.h-title-group {}
 
 .h-headline {
   font-family: var(--ff-display);
@@ -297,7 +296,6 @@ body::before {
 }
 
 /* ── SEAT PROJECTION BAR ────────────────────────────────────── */
-.bar-section {}
 
 .bar-wrap {
   position: relative;
@@ -961,7 +959,6 @@ body::before {
   line-height: 1.25;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
